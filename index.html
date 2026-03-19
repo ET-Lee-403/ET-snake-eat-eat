@@ -3,59 +3,112 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>氙基原點：三部曲 - 終極主宰版</title>
+    <title>氙基原點：三部曲 - 最終雲端版</title>
+    
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, set, push, onValue, query, orderByChild, limitToLast } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        // 使用你提供的 Firebase 配置
+        const firebaseConfig = {
+            apiKey: "AIzaSyAas6Yjbxiz5Zi4oS2iVBfR623RRkBtUtQ",
+            authDomain: "xenobase-game.firebaseapp.com",
+            databaseURL: "https://xenobase-game-default-rtdb.firebaseio.com",
+            projectId: "xenobase-game",
+            storageBucket: "xenobase-game.firebasestorage.app",
+            messagingSenderId: "604471818309",
+            appId: "1:604471818309:web:c1903c285023af803f8b2c",
+            measurementId: "G-VXB3Z97JX0"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const scoresRef = ref(db, 'leaderboard');
+
+        // 全域上傳函式
+        window.saveScoreToCloud = async (name, score) => {
+            try {
+                const newScoreRef = push(scoresRef);
+                await set(newScoreRef, { name, score, timestamp: Date.now() });
+            } catch (e) { console.error("同步失敗", e); }
+        };
+
+        // 即時排行監聽 (前 5 名)
+        const topScoresQuery = query(scoresRef, orderByChild("score"), limitToLast(5));
+        onValue(topScoresQuery, (snapshot) => {
+            const list = document.getElementById("leader-list");
+            if (!list) return;
+            list.innerHTML = "";
+            const results = [];
+            snapshot.forEach((child) => { results.push(child.val()); });
+            results.reverse().forEach(d => {
+                list.innerHTML += `<div class="leader-item"><span>${d.name}</span><span>${d.score}</span></div>`;
+            });
+        });
+    </script>
+
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&family=Noto+Sans+TC:wght@500;900&display=swap');
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #010103; color: #00ff9d; font-family: 'Noto Sans TC', sans-serif; touch-action: none; }
-        
-        .overlay { 
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
-            display: flex; flex-direction: column; align-items: center; justify-content: center; 
-            z-index: 100; transition: opacity 1.2s ease-in-out;
-            background: rgba(1, 1, 3, 0.4); backdrop-filter: blur(12px);
-        }
-
-        h1 { font-size: clamp(45px, 9vw, 65px); margin-bottom: 5px; text-shadow: 0 0 35px #00ff9d; letter-spacing: 12px; text-align: center; font-family: 'Orbitron', sans-serif; }
-        .level-info { color: #ffaa00; font-size: 20px; margin-bottom: 35px; text-align: center; letter-spacing: 1px; min-height: 1.5em; }
-        .skin-selector { display: flex; gap: 15px; margin-bottom: 40px; }
-        
-        .skin-card { 
-            border: 2px solid #333; padding: 12px; text-align: center; cursor: pointer; 
-            background: rgba(255,255,255,0.05); border-radius: 12px; width: 85px; transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
-        }
-        .skin-card.active { border-color: #00ff9d; background: rgba(0, 255, 157, 0.25); transform: scale(1.1) translateY(-5px); box-shadow: 0 10px 20px rgba(0,255,157,0.2); }
-        
-        button { 
-            padding: 16px 55px; font-size: 22px; font-weight: 900; background: transparent; 
-            color: #00ff9d; border: 2px solid #00ff9d; cursor: pointer; letter-spacing: 6px; 
-            font-family: 'Noto Sans TC'; text-transform: uppercase; transition: 0.4s;
-        }
-        button:hover { background: #00ff9d; color: #000; box-shadow: 0 0 35px #00ff9d; }
-
-        #ui-layer { position: absolute; top: 30px; left: 30px; pointer-events: none; z-index: 10; display: none; }
-        #progress-bar-container { width: 220px; height: 12px; background: rgba(255,255,255,0.1); border-radius: 6px; overflow: hidden; margin-top: 10px; border: 1px solid rgba(0,255,157,0.3); }
-        #progress-bar { width: 0%; height: 100%; background: linear-gradient(90deg, #00ff9d, #00f2ff); transition: width 0.3s; }
-        canvas { display: block; }
+        .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; background: rgba(1, 1, 3, 0.85); backdrop-filter: blur(15px); transition: 0.5s; }
+        h1 { font-size: clamp(35px, 7vw, 55px); margin: 0; text-shadow: 0 0 20px #00ff9d; letter-spacing: 8px; font-family: 'Orbitron'; }
+        .sub-title { color: #ffaa00; font-size: 14px; margin-bottom: 20px; letter-spacing: 2px; }
+        .skin-selector { display: flex; gap: 10px; margin-bottom: 25px; }
+        .skin-card { border: 2px solid #333; padding: 10px; cursor: pointer; background: rgba(255,255,255,0.05); border-radius: 8px; width: 70px; text-align: center; font-size: 14px; transition: 0.3s; }
+        .skin-card.active { border-color: #00ff9d; background: rgba(0, 255, 157, 0.2); transform: scale(1.1); }
+        .btn-group { display: flex; flex-direction: column; gap: 12px; width: 250px; }
+        button { padding: 12px; font-size: 16px; font-weight: 900; background: transparent; color: #00ff9d; border: 2px solid #00ff9d; cursor: pointer; font-family: 'Noto Sans TC'; transition: 0.3s; }
+        button:hover { background: #00ff9d; color: #000; }
+        #leaderboard-ui { margin-top: 25px; color: #fff; width: 250px; border-top: 1px solid #444; padding-top: 15px; }
+        .leader-item { display: flex; justify-content: space-between; margin: 5px 0; font-family: 'Orbitron'; font-size: 13px; background: rgba(255,255,255,0.03); padding: 4px 8px; }
+        #ui-layer { position: absolute; top: 20px; left: 20px; pointer-events: none; z-index: 10; display: none; }
+        #progress-bar-container { width: 180px; height: 6px; background: rgba(255,255,255,0.1); margin-top: 8px; border-radius: 3px; }
+        #progress-bar { width: 0%; height: 100%; background: #00ff9d; transition: 0.3s; }
+        #retry-overlay { display: none; z-index: 150; background: rgba(20, 0, 0, 0.9); }
+        #name-input-ui { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #111; padding: 30px; border: 2px solid #ffaa00; z-index: 200; text-align: center; }
         .hidden { opacity: 0; pointer-events: none; }
+        input { background: #000; color: #fff; border: 1px solid #00ff9d; padding: 10px; text-align: center; width: 80%; margin-bottom: 15px; font-family: 'Orbitron'; }
     </style>
 </head>
 <body>
 
 <div id="game-overlay" class="overlay">
-    <h1 id="main-title">氙基原點</h1>
-    <div id="level-desc" class="level-info">吞噬、進化、主宰。史詩三部曲</div>
-    <div id="skin-area" class="skin-selector">
+    <h1>氙基原點</h1>
+    <p class="sub-title">XENOBASE ORIGIN</p>
+    <div class="skin-selector">
         <div class="skin-card active" onclick="selectSkin(0, this)">翡翠</div>
         <div class="skin-card" onclick="selectSkin(1, this)">虛空</div>
         <div class="skin-card" onclick="selectSkin(2, this)">湮滅</div>
     </div>
-    <button id="action-btn" onclick="handleAction()">啟動演化</button>
+    <div class="btn-group">
+        <button onclick="startGame('LEVEL')">關卡模式</button>
+        <button onclick="startGame('INFINITE')">無限挑戰</button>
+    </div>
+    <div id="leaderboard-ui">
+        <div style="text-align:center; color:#ffaa00; margin-bottom:8px; font-size:12px;">雲端即時排行 (TOP 5)</div>
+        <div id="leader-list">載入中...</div>
+    </div>
+</div>
+
+<div id="retry-overlay" class="overlay">
+    <h2 style="color: #ff3366; font-size: 40px; font-family: 'Orbitron';">能量崩潰</h2>
+    <p id="retry-msg" style="color: #fff; margin-bottom: 30px;"></p>
+    <div class="btn-group">
+        <button onclick="retryCurrentLevel()" style="border-color: #ffaa00; color: #ffaa00;">重新嘗試本關</button>
+        <button onclick="location.reload()">回到主選單</button>
+    </div>
+</div>
+
+<div id="name-input-ui">
+    <h2 style="color:#ffaa00">新紀錄！</h2>
+    <input type="text" id="player-name" maxlength="10" placeholder="你的代號">
+    <button onclick="saveScore()">上傳數據</button>
 </div>
 
 <div id="ui-layer">
-    <div id="level-display" style="color:#ffaa00; font-weight:bold; letter-spacing:1px; font-size: 14px;">載入中...</div>
+    <div id="level-display" style="color:#ffaa00; font-size: 12px; font-weight:900;"></div>
     <div id="progress-bar-container"><div id="progress-bar"></div></div>
-    <p id="score-text" style="font-size: 32px; font-weight: 900; margin: 10px 0 0 0;">能量: 0</p>
+    <p id="score-text" style="font-size: 28px; font-weight: 900; margin: 5px 0 0 0;">能量: 0</p>
 </div>
 
 <canvas id="gameCanvas"></canvas>
@@ -64,195 +117,232 @@
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
     const overlay = document.getElementById("game-overlay");
+    const retryOverlay = document.getElementById("retry-overlay");
     const uiLayer = document.getElementById("ui-layer");
     const progressBar = document.getElementById("progress-bar");
     const scoreText = document.getElementById("score-text");
     const levelDisplay = document.getElementById("level-display");
-    const actionBtn = document.getElementById("action-btn");
-    const levelDesc = document.getElementById("level-desc");
 
-    // --- 觸控邏輯 (新增) ---
-    let touchStartX = 0, touchStartY = 0;
-    document.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; touchStartY = e.touches[0].clientY; }, {passive: false});
-    document.addEventListener('touchend', e => {
-        let dx_raw = e.changedTouches[0].clientX - touchStartX, dy_raw = e.changedTouches[0].clientY - touchStartY;
-        if (Math.abs(dx_raw) > 30 || Math.abs(dy_raw) > 30) {
-            if (Math.abs(dx_raw) > Math.abs(dy_raw)) {
-                let nDx = dx_raw > 0 ? 1 : -1;
-                if (nDx !== -dx || snake.length === 1) { dx = nDx; dy = 0; }
-            } else {
-                let nDy = dy_raw > 0 ? 1 : -1;
-                if (nDy !== -dy || snake.length === 1) { dx = 0; dy = nDy; }
-            }
-        }
-    }, {passive: false});
-
+    let gameMode = 'LEVEL', currentLevelIdx = 0, score = 0, dx = 0, dy = 0, snake = [], foods = [], obstacles = [], enemies = [];
+    let isPlaying = false, frameCount = 0;
+    let skinConfig = { main: "#00ff9d", glow: "rgba(0, 255, 157, 0.4)" };
+    
+    // 音效系統
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    function playSfx(f, t, d, v=0.08) {
+    function playSfx(freq, type, duration, vol = 0.1) {
         if(audioCtx.state === 'suspended') audioCtx.resume();
-        const o = audioCtx.createOscillator(); const g = audioCtx.createGain();
-        o.type = t; o.frequency.setValueAtTime(f, audioCtx.currentTime);
-        g.gain.setValueAtTime(v, audioCtx.currentTime); o.connect(g); g.connect(audioCtx.destination);
-        o.start(); o.stop(audioCtx.currentTime + d);
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type === 'big' ? 'sine' : type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        if (type === 'big') osc.frequency.exponentialRampToValueAtTime(freq * 2, audioCtx.currentTime + duration);
+        gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.start(); osc.stop(audioCtx.currentTime + duration);
     }
 
     const levels = [
-        { id: 1, name: "星系覺醒", target: 10, speed: 100, obs: 3, bigProb: 0.2 },
-        { id: 2, name: "能量風暴", target: 20, speed: 85, obs: 5, bigProb: 0.4 },
-        { id: 3, name: "終極演化", target: 25, speed: 75, obs: 8, bigProb: 0.7 } 
+        { id: 1, name: "星系覺醒", target: 10, speed: 100, obs: 3, bigProb: 0.2, foods: 15 },
+        { id: 2, name: "能量風暴", target: 20, speed: 85, obs: 5, bigProb: 0.4, foods: 20 },
+        { id: 3, name: "終極演化", target: 25, speed: 75, obs: 8, bigProb: 0.7, foods: 25 } 
     ];
 
-    let currentLevelIdx = 0, score = 0, dx = 0, dy = 0, snake = [], foods = [], obstacles = [];
-    let isPlaying = false, frameCount = 0, skinConfig = { main: "#00ff9d", glow: "rgba(0, 255, 157, 0.4)" };
-    let transitionActive = false, transitionFrame = 0, isEnding = false;
-    
     function res() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
     window.addEventListener('resize', res); res();
 
-    function drawMenuBackground() {
-        if(isPlaying && !transitionActive) return;
-        ctx.fillStyle = "#010103"; ctx.fillRect(0, 0, canvas.width, canvas.height);
-        const centerX = canvas.width/2, centerY = canvas.height/2;
-        const radius = Math.max(canvas.width, canvas.height);
-        let grad = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius);
-        grad.addColorStop(0, isEnding ? skinConfig.glow : `hsla(260, 80%, 15%, 0.6)`);
-        grad.addColorStop(1, 'transparent');
-        ctx.fillStyle = grad; ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        const obsX = canvas.width * 0.85, obsY = canvas.height * 0.8;
-        const obsR = canvas.width * (isEnding ? 0.4 : 0.25);
-        let g = ctx.createRadialGradient(obsX-obsR*0.2, obsY-obsR*0.2, obsR*0.1, obsX, obsY, obsR);
-        g.addColorStop(0, '#fff'); g.addColorStop(0.3, skinConfig.main); g.addColorStop(1, '#000');
-        ctx.save(); ctx.shadowBlur = isEnding ? 150 : 100; ctx.shadowColor = skinConfig.glow;
-        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(obsX, obsY, obsR, 0, Math.PI*2); ctx.fill(); ctx.restore();
-        
-        ctx.save(); ctx.translate(centerX, centerY);
-        const pCount = isEnding ? 200 : 120;
-        for(let i=0; i<pCount; i++) {
-            const angle = (i * 137.5) * Math.PI / 180;
-            let speedMult = transitionActive ? (transitionFrame * 0.8) + 1 : 1;
-            let dist = ((i * 12 + frameCount * (isEnding ? 5 : 2)) % 1200) * speedMult;
-            const x = Math.cos(angle) * dist, y = Math.sin(angle) * dist;
-            ctx.fillStyle = (transitionActive || isEnding) ? skinConfig.main : `rgba(255, 255, 255, 0.3)`;
-            const size = (transitionActive || isEnding) ? 15 : 2;
-            ctx.beginPath(); ctx.arc(x, y, size, 0, Math.PI * 2); ctx.fill();
-        }
-        ctx.restore();
-        
-        if (transitionActive) {
-            transitionFrame++;
-            if (transitionFrame > 60) { transitionActive = false; transitionFrame = 0; if (!isEnding) actualStartGame(); }
-        }
-        frameCount++; requestAnimationFrame(drawMenuBackground);
-    }
-    drawMenuBackground();
-
     function selectSkin(idx, el) {
-        if(isEnding) return;
+        playSfx(600, 'sine', 0.1);
         document.querySelectorAll('.skin-card').forEach(c => c.classList.remove('active'));
         el.classList.add('active');
-        const configs = [{ main: "#00ff9d", glow: "rgba(0, 255, 157, 0.4)" }, { main: "#bc13fe", glow: "rgba(188, 19, 254, 0.4)" }, { main: "#ff3366", glow: "rgba(255, 51, 102, 0.4)" }];
-        skinConfig = configs[idx]; playSfx(600, 'triangle', 0.1);
+        const configs = [
+            { main: "#00ff9d", glow: "rgba(0, 255, 157, 0.4)" },
+            { main: "#bc13fe", glow: "rgba(188, 19, 254, 0.4)" },
+            { main: "#ff3366", glow: "rgba(255, 51, 102, 0.4)" }
+        ];
+        skinConfig = configs[idx];
     }
 
-    function handleAction() {
-        if (isEnding) { location.reload(); return; }
-        if (audioCtx.state === 'suspended') audioCtx.resume();
-        playSfx(440, 'sine', 0.2); transitionActive = true; overlay.classList.add('hidden');
+    function startGame(mode) {
+        playSfx(440, 'sine', 0.2);
+        gameMode = mode;
+        overlay.classList.add('hidden');
+        uiLayer.style.display = "block";
+        currentLevelIdx = 0; isPlaying = true;
+        initGame(); gameLoop();
     }
 
-    function actualStartGame() { uiLayer.style.display = "block"; isPlaying = true; initLevel(); gameLoop(); }
+    function retryCurrentLevel() {
+        retryOverlay.style.display = "none";
+        isPlaying = true; initGame(); gameLoop();
+    }
 
-    function initLevel() {
-        const lv = levels[currentLevelIdx]; score = 0; dx = 0; dy = 0;
+    function initGame() {
         const tx = Math.floor(canvas.width/30), ty = Math.floor(canvas.height/30);
-        snake = [{x: Math.floor(tx/2), y: Math.floor(ty/2)}]; obstacles = [];
-        for(let i=0; i<lv.obs; i++) {
-            obstacles.push({ x: Math.floor(Math.random()*(tx-4)+2), y: Math.floor(Math.random()*(ty-4)+2), size: Math.random()*1.2+1.2, hue: Math.random()*360 });
+        snake = [{x: Math.floor(tx/2), y: Math.floor(ty/2)}];
+        score = 0; dx = 0; dy = 0; obstacles = []; enemies = [];
+        let foodCount = 18;
+        if (gameMode === 'LEVEL') {
+            const lv = levels[currentLevelIdx];
+            foodCount = lv.foods;
+            for(let i=0; i<lv.obs; i++) spawnObstacle();
+            if(lv.id >= 2) spawnEnemies(lv.id === 2 ? 4 : 6);
+        } else {
+            for(let i=0; i<4; i++) spawnObstacle();
+            spawnEnemies(3);
         }
-        foods = Array.from({length: 8}, spawnFood);
+        foods = Array.from({length: foodCount}, spawnFood);
         updateUI();
+    }
+
+    function spawnObstacle() {
+        const tx = Math.floor(canvas.width/30), ty = Math.floor(canvas.height/30);
+        obstacles.push({ x: Math.floor(Math.random()*(tx-4)+2), y: Math.floor(Math.random()*(ty-4)+2), size: Math.random()*1.1+1.3, hue: Math.random()*360 });
+    }
+
+    function spawnEnemies(count) {
+        const tx = Math.floor(canvas.width/30), ty = Math.floor(canvas.height/30);
+        for(let i=0; i<count; i++) enemies.push({ x: Math.floor(Math.random()*tx), y: Math.floor(Math.random()*ty) });
     }
 
     function spawnFood() {
         const tx = Math.floor(canvas.width/30), ty = Math.floor(canvas.height/30);
-        const isBig = Math.random() < levels[currentLevelIdx].bigProb;
-        return { x: Math.floor(Math.random()*tx), y: Math.floor(Math.random()*ty), type: isBig ? 'BIG' : 'SMALL', hue: Math.random()*360 };
-    }
-
-    function updateUI() {
-        const lv = levels[currentLevelIdx];
-        levelDisplay.innerText = `關卡 ${lv.id}: ${lv.name}`;
-        scoreText.innerText = `能量: ${score}`;
-        progressBar.style.width = Math.min(100, (score / lv.target * 100)) + "%";
+        const prob = gameMode === 'LEVEL' ? levels[currentLevelIdx].bigProb : 0.45;
+        return { x: Math.floor(Math.random()*tx), y: Math.floor(Math.random()*ty), type: Math.random() < prob ? 'BIG' : 'SMALL', hue: Math.random()*360 };
     }
 
     function gameLoop() {
         if (!isPlaying) return;
         if (checkHit()) { 
-            playSfx(100, 'sawtooth', 0.5, 0.15); isPlaying = false; 
-            levelDesc.innerText = "系統崩潰！數據同步中..."; overlay.classList.remove('hidden'); 
-            requestAnimationFrame(drawMenuBackground); return; 
+            playSfx(100, 'sawtooth', 0.5, 0.2); 
+            isPlaying = false; handleGameOver(); return; 
         }
-        if (score >= levels[currentLevelIdx].target) {
-            playSfx(1000, 'sine', 0.4); isPlaying = false;
-            if (currentLevelIdx === levels.length - 1) { showEnding(); } 
-            else { currentLevelIdx++; levelDesc.innerText = `突破！即將演化至 ${levels[currentLevelIdx].name}`; overlay.classList.remove('hidden'); requestAnimationFrame(drawMenuBackground); }
-            return;
+        if (gameMode === 'LEVEL' && score >= levels[currentLevelIdx].target) {
+            playSfx(880, 'sine', 0.4);
+            if (currentLevelIdx < 2) { currentLevelIdx++; initGame(); } 
+            else { alert("全關卡達成！你是星系主宰！"); location.reload(); return; }
         }
-        setTimeout(() => { frameCount++; draw(); moveSnake(); gameLoop(); }, levels[currentLevelIdx].speed);
-    }
-
-    function showEnding() {
-        isEnding = true; document.getElementById("skin-area").style.display = "none";
-        document.getElementById("main-title").innerText = "覺醒完成";
-        levelDesc.innerHTML = "<span style='color:#fff; font-size:24px; text-shadow:0 0 20px #fff;'>演化終止。你已超越基質，主宰星系。</span>";
-        actionBtn.innerText = "重新編寫基因";
-        playSfx(200, 'sine', 1.0, 0.2); playSfx(400, 'sine', 0.8, 0.15);
-        overlay.classList.remove('hidden'); requestAnimationFrame(drawMenuBackground);
-    }
-
-    function draw() {
-        ctx.fillStyle = "#010103"; ctx.fillRect(0, 0, canvas.width, canvas.height);
-        obstacles.forEach(o => {
-            const px = o.x*30+15, py = o.y*30+15, r = 30*o.size;
-            ctx.save(); let g = ctx.createRadialGradient(px-r*0.2, py-r*0.2, r*0.1, px, py, r); g.addColorStop(0, '#fff'); g.addColorStop(0.4, `hsl(${o.hue},70%,40%)`); g.addColorStop(1, 'transparent');
-            ctx.shadowBlur = 30; ctx.shadowColor = `hsl(${o.hue},80%,50%)`; ctx.fillStyle = g; ctx.beginPath(); ctx.arc(px, py, r, 0, Math.PI*2); ctx.fill(); ctx.restore();
-        });
-        foods.forEach(f => {
-            const isBig = f.type === 'BIG';
-            ctx.shadowBlur = isBig ? 20 : 8; ctx.shadowColor = `hsl(${f.hue},100%,60%)`;
-            ctx.fillStyle = isBig ? "#fff" : `hsl(${f.hue},100%,70%)`;
-            ctx.beginPath(); ctx.arc(f.x*30+15, f.y*30+15, (isBig?10:5) + Math.sin(frameCount/4)*2, 0, Math.PI*2); ctx.fill();
-        });
-        snake.forEach((p, i) => {
-            ctx.save(); ctx.shadowBlur = i===0 ? 25 : 10; ctx.shadowColor = skinConfig.main;
-            ctx.fillStyle = i===0 ? skinConfig.main : skinConfig.glow;
-            const s = 28 - Math.min(i*0.5, 14); ctx.beginPath(); ctx.roundRect(p.x*30+(30-s)/2, p.y*30+(30-s)/2, s, s, i===0?12:6); ctx.fill();
-            if(i===0) { ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(p.x*30+10, p.y*30+11, 3, 0, Math.PI*2); ctx.arc(p.x*30+20, p.y*30+11, 3, 0, Math.PI*2); ctx.fill(); }
-            ctx.restore();
-        });
+        if (gameMode === 'INFINITE' && frameCount % 1000 === 0) spawnEnemies(1);
+        setTimeout(() => { frameCount++; draw(); moveSnake(); if(gameMode==='INFINITE'||currentLevelIdx===2) moveEnemies(); gameLoop(); }, gameMode === 'LEVEL' ? levels[currentLevelIdx].speed : 85);
     }
 
     function moveSnake() {
         let nx = snake[0].x+dx, ny = snake[0].y+dy;
         const tx = Math.floor(canvas.width/30), ty = Math.floor(canvas.height/30);
         if (nx<0) nx=tx-1; if (nx>=tx) nx=0; if (ny<0) ny=ty-1; if (ny>=ty) ny=0;
+        enemies.forEach((en, ei) => {
+            if (snake.some(p => p.x === en.x && p.y === en.y)) {
+                playSfx(150, 'triangle', 0.2); score = Math.max(0, score - 5); updateUI();
+                enemies[ei] = { x: Math.floor(Math.random()*tx), y: Math.floor(Math.random()*ty) };
+            }
+        });
         snake.unshift({x: nx, y: ny});
         let fi = foods.findIndex(f => f.x===nx && f.y===ny);
-        if (fi !== -1) { score += (foods[fi].type === 'BIG' ? 5 : 1); playSfx(foods[fi].type === 'BIG' ? 1200 : 800, 'sine', 0.1, 0.06); updateUI(); foods[fi]=spawnFood(); } 
-        else if (snake.length > 3) snake.pop();
+        if (fi !== -1) { 
+            const isBig = foods[fi].type === 'BIG';
+            playSfx(isBig ? 400 : 1000, isBig ? 'big' : 'sine', 0.15);
+            score += (isBig ? 5 : 1); updateUI(); foods[fi] = spawnFood(); 
+        } else if (snake.length > 3) snake.pop();
+    }
+
+    function moveEnemies() {
+        if (frameCount % 6 !== 0) return;
+        const head = snake[0];
+        enemies.forEach(en => { if (Math.random() < 0.35) { if (en.x < head.x) en.x++; else if (en.x > head.x) en.x--; if (en.y < head.y) en.y++; else if (en.y > head.y) en.y--; } });
     }
 
     function checkHit() {
         if(dx===0 && dy===0) return false;
         const h = snake[0];
-        return obstacles.some(o => Math.sqrt((o.x+0.5-h.x-0.5)**2 + (o.y+0.5-h.y-0.5)**2) < o.size * 0.7) || snake.slice(4).some(p => p.x===h.x && p.y===h.y);
+        return obstacles.some(o => Math.sqrt((o.x+0.5-h.x-0.5)**2 + (o.y+0.5-h.y-0.5)**2) < o.size * 0.75) || snake.slice(4).some(p => p.x===h.x && p.y===h.y);
+    }
+
+    function handleGameOver() {
+        if (gameMode === 'INFINITE') { document.getElementById("name-input-ui").style.display = "block"; } 
+        else { document.getElementById("retry-msg").innerText = `你在第 ${currentLevelIdx + 1} 關「${levels[currentLevelIdx].name}」遭遇崩潰`; retryOverlay.style.display = "flex"; }
+    }
+
+    async function saveScore() {
+        playSfx(600, 'sine', 0.2);
+        const name = document.getElementById("player-name").value || "匿名星塵";
+        document.getElementById("name-input-ui").innerText = "上傳中...";
+        await window.saveScoreToCloud(name, score);
+        location.reload();
+    }
+
+    function updateUI() {
+        scoreText.innerText = `能量: ${score}`;
+        if (gameMode === 'LEVEL') {
+            const lv = levels[currentLevelIdx];
+            levelDisplay.innerText = `[當前位置] 第 ${lv.id} 關 - ${lv.name}`;
+            progressBar.style.width = (score / lv.target * 100) + "%";
+        } else {
+            levelDisplay.innerText = `[模式] 無限演化挑戰`;
+            progressBar.style.width = "100%";
+        }
+    }
+
+    function draw() {
+        ctx.fillStyle = "#010103"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+        obstacles.forEach(o => {
+            const px = o.x*30+15, py = o.y*30+15, r = 30*o.size;
+            ctx.save();
+            let g = ctx.createRadialGradient(px-r*0.2, py-r*0.2, r*0.1, px, py, r);
+            g.addColorStop(0, '#fff'); g.addColorStop(0.3, `hsl(${o.hue},70%,40%)`); g.addColorStop(1, '#000');
+            ctx.fillStyle = g; ctx.beginPath(); ctx.arc(px, py, r, 0, Math.PI*2); ctx.fill(); ctx.restore();
+        });
+        enemies.forEach(en => {
+            const px = en.x*30+15, py = en.y*30+15;
+            ctx.save(); ctx.translate(px, py); ctx.rotate(frameCount * 0.1);
+            let g = ctx.createRadialGradient(0, 0, 0, 0, 0, 22);
+            g.addColorStop(0, 'rgba(255, 0, 0, 1)'); g.addColorStop(1, 'transparent');
+            ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, 22, 0, Math.PI*2); ctx.fill();
+            ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.beginPath();
+            for(let i=0; i<8; i++) {
+                let a = i * Math.PI / 4; let r = i % 2 === 0 ? 14 : 6; ctx.lineTo(Math.cos(a)*r, Math.sin(a)*r);
+            }
+            ctx.closePath(); ctx.stroke(); ctx.restore();
+        });
+        foods.forEach(f => {
+            const px = f.x*30+15, py = f.y*30+15;
+            ctx.save();
+            if (f.type === 'BIG') {
+                let r = 10 + Math.sin(frameCount / 5) * 3;
+                let g = ctx.createRadialGradient(px, py, 2, px, py, r + 10);
+                g.addColorStop(0, '#fff'); g.addColorStop(0.4, `hsl(${f.hue}, 100%, 70%)`); g.addColorStop(1, 'transparent');
+                ctx.shadowBlur = 20; ctx.shadowColor = `hsl(${f.hue}, 100%, 50%)`;
+                ctx.fillStyle = g; ctx.beginPath(); ctx.arc(px, py, r + 10, 0, Math.PI*2); ctx.fill();
+            } else {
+                ctx.fillStyle = `hsl(${f.hue}, 100%, 75%)`;
+                ctx.beginPath(); ctx.arc(px, py, 5, 0, Math.PI*2); ctx.fill();
+            }
+            ctx.restore();
+        });
+        snake.forEach((p, i) => {
+            ctx.save();
+            ctx.shadowBlur = i===0 ? 15 : 5; ctx.shadowColor = skinConfig.main;
+            ctx.fillStyle = i===0 ? skinConfig.main : skinConfig.glow;
+            ctx.beginPath(); ctx.roundRect(p.x*30+3, p.y*30+3, 24, 24, i===0?8:4); ctx.fill();
+            ctx.restore();
+        });
     }
 
     window.addEventListener("keydown", e => {
         const k = { 37: [-1,0], 38: [0,-1], 39: [1,0], 40: [0,1] };
-        if (k[e.keyCode]) { const [nx, ny] = k[e.keyCode]; if (nx!==-dx || ny!==-dy || snake.length===1) { dx=nx; dy=ny; } }
+        if (k[e.keyCode]) {
+            const [nx, ny] = k[e.keyCode];
+            if (nx!==-dx || ny!==-dy || snake.length===1) { dx=nx; dy=ny; }
+        }
+    });
+
+    let tsX = 0, tsY = 0;
+    document.addEventListener('touchstart', e => { tsX = e.touches[0].clientX; tsY = e.touches[0].clientY; });
+    document.addEventListener('touchend', e => {
+        let dx_r = e.changedTouches[0].clientX - tsX, dy_r = e.changedTouches[0].clientY - tsY;
+        if (Math.abs(dx_r) > 20 || Math.abs(dy_r) > 20) {
+            if (Math.abs(dx_r) > Math.abs(dy_r)) { if ((dx_r > 0 ? 1 : -1) !== -dx) { dx = dx_r > 0 ? 1 : -1; dy = 0; } }
+            else { if ((dy_r > 0 ? 1 : -1) !== -dy) { dx = 0; dy = dy_r > 0 ? 1 : -1; } }
+        }
     });
 </script>
 </body>
